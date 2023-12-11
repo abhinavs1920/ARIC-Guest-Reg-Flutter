@@ -1,15 +1,11 @@
 // user_app/lib/screens/scan_screen.dart
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:guest/home_screen.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:rxdart/rxdart.dart';
 
 class ScanScreen extends StatefulWidget {
-  final String userId;
-
-  ScanScreen({required this.userId});
-
   @override
   _ScanScreenState createState() => _ScanScreenState();
 }
@@ -17,71 +13,72 @@ class ScanScreen extends StatefulWidget {
 class _ScanScreenState extends State<ScanScreen> {
   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
   late QRViewController controller;
-  bool scanned = false; // Flag to track whether a scan has already been processed
-  late String lastScannedQrCode;
-  late Timer debounceTimer;
-
-  @override
-  void initState() {
-    super.initState();
-    debounceTimer = Timer(Duration(seconds: 2), () {});
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('QR Scanner'),
+        title: Text('Scan QR Code'),
       ),
       body: QRView(
         key: qrKey,
-        onQRViewCreated: (controller) {
-          this.controller = controller;
-          controller.scannedDataStream.listen((scanData) {
-            // Add the scanned QR code to the stream
-            handleScannedData(scanData.code.toString());
-          });
-        },
+        onQRViewCreated: _onQRViewCreated,
       ),
     );
   }
 
-  void handleScannedData(String qrCode) {
-    if (!scanned) {
-      scanned = true; // Set the flag to true to prevent multiple scans
-      lastScannedQrCode = qrCode;
-
-      // Save data to Firestore
-      saveDataToFirestore(lastScannedQrCode);
-
-
-
-      // Automatically exit the camera screen and go back to the home screen
-      Route route = MaterialPageRoute(builder: (context) => HomeScreen(userId: 'abhishek'));
-      Navigator.pushReplacement(context, route);
-      // Start the debounce timer
-      debounceTimer = Timer(Duration(seconds: 2), () {
-        scanned = false; // Reset the flag after the debounce time
-      });
-    }
+  void _onQRViewCreated(QRViewController controller) {
+    this.controller = controller;
+    controller.scannedDataStream
+        .debounce((_) => TimerStream(true, Duration(seconds: 1)))
+        .listen((scanData) {
+      // Call a function to save data to Firestore
+      saveDataToFirestore(scanData.code.toString(), controller);
+    });
   }
 
-  void saveDataToFirestore(String qrCode) {
-    // Save data to Firestore
-    FirebaseFirestore.instance
-        .collection('user_data')
-        .doc(widget.userId)
-        .collection('scans')
-        .add({
-      'qr_code': qrCode,
-      'timestamp': FieldValue.serverTimestamp(),
-    });
+  void saveDataToFirestore(String qrCode, QRViewController controller) async {
+    try {
+      // Get the current user's email (replace with your authentication logic)
+      String userEmail = FirebaseAuth.instance.currentUser?.email ?? '';
+
+      // Check the status of the coupon using a Firestore query
+      CollectionReference couponsCollection = FirebaseFirestore.instance.collection('users').doc(userEmail).collection('available_coupons');
+      QuerySnapshot querySnapshot = await couponsCollection.where('code', isEqualTo: qrCode).get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        // The coupon is available, mark it as used
+        String couponId = querySnapshot.docs.first.id;
+        await couponsCollection.doc(couponId).delete(); // Remove from available coupons
+
+        CollectionReference usedCouponsCollection = FirebaseFirestore.instance.collection('users').doc(userEmail).collection('used_coupons');
+        await usedCouponsCollection.add({
+          'code': qrCode,
+          'status': "used",
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+
+        // Show a success message
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Coupon successfully scanned and marked as used.'),
+        ));
+
+        // Pop the ScanScreen and return to the previous screen
+        Navigator.pop(context);
+      } else {
+        // The coupon is not available or already used
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Coupon not valid or already used.'),
+        ));
+      }
+    } catch (e) {
+      print('Error saving data to Firestore: $e');
+    }
   }
 
   @override
   void dispose() {
     controller.dispose();
-    debounceTimer.cancel(); // Cancel the timer to avoid memory leaks
     super.dispose();
   }
 }

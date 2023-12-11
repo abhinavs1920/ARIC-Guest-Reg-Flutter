@@ -1,48 +1,42 @@
-// user_app/lib/screens/home_screen.dart
 import 'package:flutter/material.dart';
-import 'package:guest/scan_list_screen.dart';
 import 'package:guest/scan_screen.dart';
+import 'coupon_list_screen.dart';
+import 'coupon_service.dart';
 
 class HomeScreen extends StatelessWidget {
-  final String userId;
+  final CouponService couponService;
 
-  HomeScreen({required this.userId});
+  HomeScreen({required this.couponService});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('User App Home'),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+    return DefaultTabController(
+      length: 3,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text('Coupon App'),
+          bottom: TabBar(
+            tabs: [
+              Tab(text: 'Available Coupons'),
+              Tab(text: 'Expired Coupons'),
+              Tab(text: 'Used Coupons'),
+            ],
+          ),
+        ),
+        body: TabBarView(
           children: [
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ScanScreen(userId: userId),
-                  ),
-                );
-              },
-              child: Text('Scan QR Code'),
-            ),
-            SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ScanListScreen(userId: userId),
-                  ),
-                );
-              },
-              child: Text('View Previous Scans'),
-            ),
-            // Add other UI elements as needed
+            CouponListScreen(couponService: couponService, status: 'available_coupons'),
+            CouponListScreen(couponService: couponService, status: 'expired_coupons'),
+            CouponListScreen(couponService: couponService, status: 'used_coupons'),
           ],
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () {
+            Navigator.push(context,
+              MaterialPageRoute(builder: (context) => ScanScreen()),
+            );
+          },
+          child: Icon(Icons.qr_code_scanner),
         ),
       ),
     );
