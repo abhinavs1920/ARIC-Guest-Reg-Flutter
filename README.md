@@ -1,16 +1,33 @@
-# guest
+# Event Token Scanner App
 
-A new Flutter project.
+This Flutter application allows event organizers to efficiently scan and manage food passes using QR code scanning technology and Firebase for real-time data management.
+
+## Features
+
+- **QR Code Scanner:** Utilizes `qr_code_scanner` package to scan QR codes from food passes.
+- **Firebase Integration:**
+  - Authentication: Uses `firebase_auth` for user authentication and `google_sign_in` for Google sign-in.
+  - Database: Integrates `cloud_firestore` for storing and managing scanned data in real-time.
+- **Toast Notifications:** Displays notifications using the `toast` package.
+- **Reactive Programming:** Implements reactive programming patterns with `rxdart`.
+
+## Packages Used
+
+- `firebase_core: ^2.24.2`
+- `firebase_auth: ^4.15.3`
+- `cloud_firestore: ^4.13.5`
+- `qr_code_scanner: ^1.0.1`
+- `toast: ^0.3.0`
+- `google_sign_in: ^6.1.6`
+- `rxdart: ^0.27.7`
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+Follow these steps to get started with the app:
 
-A few resources to get you started if this is your first Flutter project:
+1. Clone the repository.
+2. Ensure Flutter SDK is installed on your machine.
+3. Run `flutter pub get` to install dependencies.
+4. Set up Firebase project and add necessary configuration files (`google-services.json` for Android, `GoogleService-Info.plist` for iOS).
+5. Run the app using `flutter run`.
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
